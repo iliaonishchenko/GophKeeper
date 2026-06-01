@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package keeper;
+
+option go_package = "github.com/iliaonishchenko/gophkeeper/internal/proto";
+
+// ItemType задаёт тип хранимого секрета.
+enum ItemType {
+  ITEM_TYPE_UNSPECIFIED = 0; // тип не задан
+  ITEM_TYPE_CREDENTIALS = 1; // пара логин/пароль
+  ITEM_TYPE_TEXT        = 2; // произвольный текст
+  ITEM_TYPE_BINARY      = 3; // произвольные бинарные данные
+  ITEM_TYPE_CARD        = 4; // данные банковской карты
+}
+
+// Item описывает один зашифрованный секрет.
+// Поле ciphertext шифруется клиентом до отправки; сервер его не расшифровывает.
+message Item {
+  string   id         = 1; // идентификатор элемента
+  ItemType type       = 2; // тип секрета
+  string   name       = 3; // название секрета
+  bytes    ciphertext = 4; // AES-256-GCM шифртекст полезной нагрузки
+  string   metadata   = 5; // произвольные текстовые метаданные
+  int64    version    = 6; // версия секрета
+  int64    updated_at = 7; // unix-время последнего изменения
+  bool     deleted    = 8;
+}
+
+// RegisterRequest — регистрация нового пользователя.
+message RegisterRequest {
+  string login    = 1;
+  string password = 2; // мастер пароль, передаётся по защищённому каналу и не хранится в открытом виде
+}
+
+// RegisterResponse возвращает токен и соль для вычисления ключа шифрования на клиенте.
+message RegisterResponse {
+  string token    = 1; // bearer-токен авторизации
+  bytes  enc_salt = 2; // соль для PBKDF2 вычисление ключа шифрования
+}
+
+// LoginRequest — аутентификация пользователя.
+message LoginRequest {
+  string login    = 1;
+  string password = 2;
+}
+
+// LoginResponse возвращает токен и соль.
+message LoginResponse {
+  string token    = 1;
+  bytes  enc_salt = 2;
+}
+
+// UpsertItemRequest создаёт или обновляет элемент (пустой id => создание).
+message UpsertItemRequest {
+  Item item = 1;
+}
+
+// UpsertItemResponse возвращает присвоенные сервером идентификатор, версию и время изменения.
+message UpsertItemResponse {
+  string id         = 1;
+  int64  version    = 2;
+  int64  updated_at = 3;
+}
+
+// GetItemRequest запрашивает элемент по идентификатору.
+message GetItemRequest {
+  string id = 1;
+}
+
+// GetItemResponse возвращает запрошенный элемент.
+message GetItemResponse {
+  Item item = 1;
+}
+
+// DeleteItemRequest помечает элемент как удалённый.
+message DeleteItemRequest {
+  string id = 1;
+}
+
+// DeleteItemResponse — подтверждение удаления с новой версией и временем.
+message DeleteItemResponse {
+  int64 version    = 1;
+  int64 updated_at = 2;
+}
+
+// SyncRequest синхронизация элементов.
+message SyncRequest {
+  int64 since = 1;
+}
+
+// SyncResponse возвращает изменённые элементы.
+message SyncResponse {
+  repeated Item items  = 1;
+  int64         cursor = 2;
+}
+
+// Keeper определяет сервис менеджера секретов GophKeeper.
+service Keeper {
+  // Register регистрирует нового пользователя и выдаёт токен.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Login аутентифицирует пользователя и выдаёт токен.
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // UpsertItem создаёт или обновляет зашифрованный элемент. Требует авторизации.
+  rpc UpsertItem(UpsertItemRequest) returns (UpsertItemResponse);
+  // GetItem возвращает элемент по идентификатору. Требует авторизации.
+  rpc GetItem(GetItemRequest) returns (GetItemResponse);
+  // DeleteItem помечает элемент удалённым. Требует авторизации.
+  rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse);
+  // Sync возвращает элементы, изменённые после курсора клиента. Требует авторизации.
+  rpc Sync(SyncRequest) returns (SyncResponse);
+}
