@@ -11,12 +11,11 @@ import (
 var ErrUserNotFound = errors.New("пользователь не найден")
 
 type UsersRepository struct {
-	db         *sql.DB
-	classifier *PostgresErrorClassifier
+	baseRepo
 }
 
-func NewUsersRepository(db *sql.DB, classifier *PostgresErrorClassifier) *UsersRepository {
-	return &UsersRepository{db: db, classifier: classifier}
+func NewUsersRepository(db *sql.DB, classifier ErrorClassifier) *UsersRepository {
+	return &UsersRepository{baseRepo{db: db, classifier: classifier}}
 }
 
 func (r *UsersRepository) CreateUser(ctx context.Context, u *model.User) error {

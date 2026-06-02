@@ -1,6 +1,7 @@
 package clientapp
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/iliaonishchenko/gophkeeper/internal/model"
@@ -67,7 +68,7 @@ func TestActiveItemsAndFind(t *testing.T) {
 		{ID: "b", Version: 1, Deleted: true},
 	}}
 
-	active := s.ActiveItems()
+	active := slices.Collect(s.ActiveItems())
 	require.Len(t, active, 1)
 	assert.Equal(t, "a", active[0].ID)
 

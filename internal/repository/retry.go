@@ -5,12 +5,14 @@ import (
 	"time"
 )
 
-func executeWithRetry(classifier *PostgresErrorClassifier, operation func() error) error {
+func executeWithRetry(classifier ErrorClassifier, operation func() error) error {
 	const (
 		maxAttempts = 4
 		deltaDelay  = 2 * time.Second
+		baseDelay   = 1 * time.Second
 	)
-	currDelay := 1 * time.Second
+
+	currDelay := baseDelay
 	var lastErr error
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt != 0 {

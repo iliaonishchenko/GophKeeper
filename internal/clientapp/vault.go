@@ -2,9 +2,9 @@ package clientapp
 
 import (
 	"context"
-
 	"github.com/iliaonishchenko/gophkeeper/internal/crypto"
 	"github.com/iliaonishchenko/gophkeeper/internal/model"
+	"iter"
 )
 
 type Upserter interface {
@@ -53,14 +53,17 @@ func Decrypt(key []byte, it *model.Item) ([]byte, error) {
 	return DecryptPayload(key, it.Ciphertext)
 }
 
-func (s *Session) ActiveItems() []*model.Item {
-	out := make([]*model.Item, 0, len(s.Items))
-	for _, it := range s.Items {
-		if !it.Deleted {
-			out = append(out, it)
+func (s *Session) ActiveItems() iter.Seq[*model.Item] {
+	return func(yield func(*model.Item) bool) {
+		for _, it := range s.Items {
+			if it.Deleted {
+				continue
+			}
+			if !yield(it) {
+				return
+			}
 		}
 	}
-	return out
 }
 
 func (s *Session) FindItem(id string) *model.Item {

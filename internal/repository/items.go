@@ -11,12 +11,11 @@ import (
 var ErrItemNotFound = errors.New("элемент не найден")
 
 type ItemsRepository struct {
-	db         *sql.DB
-	classifier *PostgresErrorClassifier
+	baseRepo
 }
 
-func NewItemsRepository(db *sql.DB, classifier *PostgresErrorClassifier) *ItemsRepository {
-	return &ItemsRepository{db: db, classifier: classifier}
+func NewItemsRepository(db *sql.DB, classifier ErrorClassifier) *ItemsRepository {
+	return &ItemsRepository{baseRepo{db: db, classifier: classifier}}
 }
 
 func (r *ItemsRepository) UpsertItem(ctx context.Context, it *model.Item) (*model.Item, error) {

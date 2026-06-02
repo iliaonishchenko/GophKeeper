@@ -6,6 +6,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+type ErrorClassifier interface {
+	IsRetriable(err error) bool
+}
+
 type PostgresErrorClassifier struct{}
 
 func NewPostgresErrorClassifier() *PostgresErrorClassifier {

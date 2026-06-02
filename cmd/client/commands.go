@@ -137,11 +137,7 @@ func cmdList(args []string) error {
 	}
 
 	items := s.ActiveItems()
-	if len(items) == 0 {
-		fmt.Println("нет сохранённых секретов (возможно, требуется sync)")
-		return nil
-	}
-	for _, it := range items {
+	for it := range items {
 		fmt.Printf("id=%s\tтип=%s\tимя=%s\tметаданные=%s\n", it.ID, typeName(it.Type), it.Name, it.Metadata)
 	}
 	return nil

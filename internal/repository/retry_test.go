@@ -4,13 +4,20 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+type fakeClassifier struct {
+	retriable bool
+}
+
+func (f fakeClassifier) IsRetriable(error) bool {
+	return f.retriable
+}
+
 func TestExecuteWithRetrySuccess(t *testing.T) {
-	classifier := NewPostgresErrorClassifier()
+	classifier := fakeClassifier{retriable: false}
 	calls := 0
 	err := executeWithRetry(classifier, func() error {
 		calls++
@@ -21,7 +28,7 @@ func TestExecuteWithRetrySuccess(t *testing.T) {
 }
 
 func TestExecuteWithRetryNonRetriable(t *testing.T) {
-	classifier := NewPostgresErrorClassifier()
+	classifier := fakeClassifier{retriable: false}
 	calls := 0
 	err := executeWithRetry(classifier, func() error {
 		calls++
@@ -32,11 +39,11 @@ func TestExecuteWithRetryNonRetriable(t *testing.T) {
 }
 
 func TestExecuteWithRetryRetriableExhausted(t *testing.T) {
-	classifier := NewPostgresErrorClassifier()
+	classifier := fakeClassifier{retriable: true}
 	calls := 0
 	err := executeWithRetry(classifier, func() error {
 		calls++
-		return &pgconn.PgError{Code: "08006"}
+		return errors.New("временная ошибка")
 	})
 	assert.Error(t, err)
 	assert.Equal(t, 4, calls, "ретраебл-ошибка должна исчерпать все попытки")
